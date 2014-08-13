@@ -8,11 +8,15 @@
 ########
 
 import os, sys, commands
+import getopt
+
+RETCODE_INVALID_OPTION=7
+RETCODE_SUCCESS=0
 
 # Define your snmp RO String
 RO_string =''
 # Define your WLC's by IP:
-WLC_List = ['1']
+WLC_List = ['']
 
 # Minor exception handling
 try:
@@ -23,6 +27,61 @@ except:
 
 # Define the output files
 outfile1 = open("/tmp/wlc_aps", "w")
+
+def print_help():
+    SP="   "
+    print(sys.argv[0] + " [OPTIONS]")
+    print(SP + "-h | --help             " + "print this help")
+    print(SP + "-v | --verbose          " + "print this help")
+    print(SP + "-a | --addresses        " + "print this help")
+    print(SP + "-m | --mib              " + "the mib object")
+    print(SP + "-t | --mib-table        " + "mib table object")
+    print(SP + "-c | --community-string " + "SNMP community string (password)")
+    print(SP + "-f | --file             " + "Output file, use - for stdout, default /tmp/wlc_aps")
+    print(SP + "-o | --objects          " + "print objects of table, default is print all, use numbers for each column")
+
+def parse_opts():
+    opt_dict={}
+    opt_dict['verbose'] = false
+    opt_dict['file'] = "/tmp/wlc_aps"
+    opt_dict['objects'] = None
+    try:
+        opts,args = getopt.getopt(sys.argv[1:], "hva:m:t:c:f:", ["help", "verbose", "addresses", "mib", "mib-table", "community-string", "file", "mib-table"])
+    except getopt.GetoptError:
+        print ("Invalid options")
+        print_help()
+        sys.exit(RETCODE_INVALID_OPTION)
+    for opt, arg in opts:
+        if opt in ('-h', '--help'):
+            print_help()
+            sys.exit(RETCODE_SUCCESS)
+        elif opt in ('-a','--addresses'):
+            addresses=[]
+            for address in arg.split(','):
+                addresses.append(address)
+            if not addresses:
+                print("At least one WLC address is required")
+                sys.exit(RETCODE_INVALID_OPTION)
+            else:
+                opt_dict['addresses'] = addresses
+        elif opt in ('-m', '--mib'):
+            opt_dict['mib']=arg
+        elif opt in ('-t', '--mib-table'):
+            opt_dict['mib-table'] = arg
+        elif opt in ('-v', '--verbose'):
+            opt_dict['verbose'] = true
+        elif opt in ('-c', '--community-string'):
+            opt_dict['password'] = arg
+        elif opt in ('-f','--file'):
+            opt_dict['output'] = arg
+        elif opt in ('-o', '--objects'):
+            opt_dict['objects'] = arg.split(',')
+        else:
+            print_help()
+            sys.exit(RETCODE_INVALID_OPTION)
+
+
+
 
 def get_ap_data(WLC):
     # use net-snmp to get entire 'bsnAPTable'. Check the AIRESPACE-WIRELESS-MIB.my for what column heading definitions.
